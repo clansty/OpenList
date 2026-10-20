@@ -1,0 +1,3 @@
+[submodule "OpenList-Frontend"]
+	path = OpenList-Frontend
+	url = https://github.com/OpenListTeam/OpenList-Frontend

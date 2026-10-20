@@ -98,7 +98,7 @@ func generateSSOBindingToken(c *gin.Context, purpose, ssoID string) (string, err
 		c.SetCookie(
 			ssoBindingCookie,
 			session,
-			int((stateExpire+ssoBindingExpire).Seconds()),
+			int((stateExpire + ssoBindingExpire).Seconds()),
 			path.Join(conf.URL.Path, "/api"),
 			"",
 			strings.HasPrefix(common.GetApiUrl(c), "https://"),
@@ -177,9 +177,16 @@ func ssoRedirectUri(c *gin.Context, useCompatibility bool, method string) string
 	}
 }
 
+// ssoUseCompatibilityMode 决定回调是整页 302 回前端还是 postMessage 给弹窗。
+// 强制 SSO 登录时登录页本身会被跳过，没有弹窗可以接住 postMessage，
+// 所以这种情况下一律按兼容模式整页回调。
+func ssoUseCompatibilityMode() bool {
+	return setting.GetBool(conf.SSOCompatibilityMode) || setting.GetBool(conf.SSOForceLogin)
+}
+
 func SSOLoginRedirect(c *gin.Context) {
 	method := c.Query("method")
-	useCompatibility := setting.GetBool(conf.SSOCompatibilityMode)
+	useCompatibility := ssoUseCompatibilityMode()
 	enabled := setting.GetBool(conf.SSOLoginEnabled)
 	clientId := setting.GetStr(conf.SSOClientId)
 	platform := setting.GetStr(conf.SSOLoginPlatform)
@@ -321,7 +328,7 @@ func parseJWT(p string) ([]byte, error) {
 }
 
 func OIDCLoginCallback(c *gin.Context) {
-	useCompatibility := setting.GetBool(conf.SSOCompatibilityMode)
+	useCompatibility := ssoUseCompatibilityMode()
 	method := c.Query("method")
 	if useCompatibility {
 		method = path.Base(c.Request.URL.Path)
@@ -413,7 +420,7 @@ func OIDCLoginCallback(c *gin.Context) {
 
 func SSOLoginCallback(c *gin.Context) {
 	enabled := setting.GetBool(conf.SSOLoginEnabled)
-	usecompatibility := setting.GetBool(conf.SSOCompatibilityMode)
+	usecompatibility := ssoUseCompatibilityMode()
 	if !enabled {
 		common.ErrorResp(c, errors.New("sso login is disabled"), 500)
 		return
